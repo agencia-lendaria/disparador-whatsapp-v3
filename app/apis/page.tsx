@@ -24,6 +24,7 @@ interface ApiConfiguration {
   id: string
   name: string
   api_type: 'evolution_web' | 'evolution_cloud' | 'meta_cloud'
+  server_url: string
   instance_name: string | null
   phone_number: string | null
   phone_number_id: string | null
@@ -39,6 +40,7 @@ export default function ApisPage() {
   const [formData, setFormData] = useState({
     name: '',
     api_type: 'evolution_web' as 'evolution_web' | 'evolution_cloud' | 'meta_cloud',
+    server_url: '',
     instance_name: '',
     access_token: '',
     phone_number: '',
@@ -81,6 +83,7 @@ export default function ApisPage() {
         user_id: user.id,
         name: formData.name,
         api_type: formData.api_type,
+        server_url: formData.server_url,
         instance_name: formData.instance_name || null,
         access_token: formData.access_token,
         phone_number: formData.phone_number || null,
@@ -115,6 +118,7 @@ export default function ApisPage() {
     setFormData({
       name: '',
       api_type: 'evolution_web',
+      server_url: '',
       instance_name: '',
       access_token: '',
       phone_number: '',
@@ -128,6 +132,7 @@ export default function ApisPage() {
     setFormData({
       name: config.name,
       api_type: config.api_type,
+      server_url: config.server_url || '',
       instance_name: config.instance_name || '',
       access_token: '', // Don't pre-fill for security
       phone_number: config.phone_number || '',
@@ -156,21 +161,137 @@ export default function ApisPage() {
   const testConnection = async (config: ApiConfiguration) => {
     setTesting(config.id)
     try {
-      // Simulate API test - replace with actual API calls
-      await new Promise(resolve => setTimeout(resolve, 2000))
+      let isConnected = false
+      let errorMessage = ''
+
+      switch (config.api_type) {
+        case 'evolution_web':
+        case 'evolution_cloud':
+          isConnected = await testEvolutionApi(config)
+          break
+        case 'meta_cloud':
+          isConnected = await testMetaCloudApi(config)
+          break
+        default:
+          throw new Error('Tipo de API não suportado')
+      }
       
       // Update configuration status
       const { error } = await supabase
         .from('api_configurations')
-        .update({ is_active: true })
+        .update({ is_active: isConnected })
         .eq('id', config.id)
 
       if (error) throw error
+      
+      if (isConnected) {
+        alert('✅ Conexão com a API estabelecida com sucesso!\n\n' +
+              `Servidor: ${config.server_url}\n` +
+              (config.instance_name ? `Instância: ${config.instance_name}\n` : '') +
+              'Todas as credenciais estão funcionando corretamente.')
+      } else {
+        alert('❌ Falha na conexão com a API.\n\n' +
+              'Verifique:\n' +
+              '• URL do servidor está correta\n' +
+              '• Token de acesso é válido\n' +
+              '• Nome da instância existe (Evolution API)\n' +
+              '• Phone Number ID está correto (Meta Cloud API)')
+      }
+      
       fetchConfigurations()
     } catch (error) {
       console.error('Error testing connection:', error)
+      alert(`❌ Erro ao testar conexão: ${error.message}\n\n` +
+            'Dicas de solução:\n' +
+            '• Verifique se a URL do servidor está acessível\n' +
+            '• Confirme se o token tem as permissões necessárias\n' +
+            '• Teste a conectividade com a internet')
+      
+      // Mark as inactive on error
+      await supabase
+        .from('api_configurations')
+        .update({ is_active: false })
+        .eq('id', config.id)
+      
+      fetchConfigurations()
     } finally {
       setTesting(null)
+    }
+  }
+
+  const testEvolutionApi = async (config: ApiConfiguration): Promise<boolean> => {
+    try {
+      const baseUrl = config.server_url || 'https://evolution-ops.agencialendaria.ai'
+      const response = await fetch(`${baseUrl}/instance/fetchInstances`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${config.access_token}`,
+          'Content-Type': 'application/json'
+        },
+        signal: AbortSignal.timeout(10000) // 10s timeout
+      })
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`)
+      }
+
+      const data = await response.json()
+      
+      // Check if instance exists in the response
+      if (config.instance_name) {
+        const instanceExists = data.some((instance: any) => 
+          instance.instance?.instanceName === config.instance_name
+        )
+        
+        if (!instanceExists) {
+          throw new Error(`Instância '${config.instance_name}' não encontrada`)
+        }
+      }
+
+      return true
+    } catch (error) {
+      console.error('Evolution API test failed:', error)
+      return false
+    }
+  }
+
+  const testMetaCloudApi = async (config: ApiConfiguration): Promise<boolean> => {
+    try {
+      if (!config.phone_number_id) {
+        throw new Error('Phone Number ID é obrigatório para Meta Cloud API')
+      }
+
+      const baseUrl = config.server_url || 'https://graph.facebook.com/v23.0'
+      const response = await fetch(`${baseUrl}/${config.phone_number_id}`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${config.access_token}`,
+          'Content-Type': 'application/json'
+        },
+        signal: AbortSignal.timeout(10000) // 10s timeout
+      })
+
+      if (!response.ok) {
+        if (response.status === 401) {
+          throw new Error('Token de acesso inválido')
+        } else if (response.status === 404) {
+          throw new Error('Phone Number ID não encontrado')
+        } else {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`)
+        }
+      }
+
+      const data = await response.json()
+      
+      // Check if we got valid phone number data
+      if (!data.id) {
+        throw new Error('Resposta inválida da API')
+      }
+
+      return true
+    } catch (error) {
+      console.error('Meta Cloud API test failed:', error)
+      return false
     }
   }
 
@@ -266,7 +387,12 @@ export default function ApisPage() {
                     value={formData.api_type}
                     onChange={(e) => setFormData(prev => ({ 
                       ...prev, 
-                      api_type: e.target.value as any 
+                      api_type: e.target.value as any,
+                      server_url: e.target.value === 'meta_cloud' 
+                        ? 'https://graph.facebook.com/v23.0' 
+                        : e.target.value.includes('evolution') 
+                        ? 'https://evolution-ops.agencialendaria.ai' 
+                        : ''
                     }))}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                     required
@@ -278,15 +404,43 @@ export default function ApisPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="instance_name">Nome da Instância</Label>
+                  <Label htmlFor="server_url">
+                    {formData.api_type === 'meta_cloud' ? 'URL da API Meta' : 'URL do Servidor Evolution API'}
+                  </Label>
                   <Input
-                    id="instance_name"
-                    value={formData.instance_name}
-                    onChange={(e) => setFormData(prev => ({ ...prev, instance_name: e.target.value }))}
-                    placeholder="Ex: instance01"
+                    id="server_url"
+                    value={formData.server_url}
+                    onChange={(e) => setFormData(prev => ({ ...prev, server_url: e.target.value }))}
+                    placeholder={
+                      formData.api_type === 'meta_cloud' 
+                        ? 'https://graph.facebook.com/v23.0'
+                        : 'https://sua-evolution-api.com'
+                    }
                     required
                   />
+                  <p className="text-sm text-gray-500">
+                    {formData.api_type === 'meta_cloud' 
+                      ? 'URL base da API oficial do Meta/Facebook'
+                      : 'URL onde sua instância da Evolution API está hospedada'
+                    }
+                  </p>
                 </div>
+
+                {(formData.api_type === 'evolution_web' || formData.api_type === 'evolution_cloud') && (
+                  <div className="space-y-2">
+                    <Label htmlFor="instance_name">Nome da Instância</Label>
+                    <Input
+                      id="instance_name"
+                      value={formData.instance_name}
+                      onChange={(e) => setFormData(prev => ({ ...prev, instance_name: e.target.value }))}
+                      placeholder="Ex: instance01"
+                      required
+                    />
+                    <p className="text-sm text-gray-500">
+                      Nome da instância configurada na sua Evolution API
+                    </p>
+                  </div>
+                )}
 
                 {formData.api_type === 'evolution_web' && (
                   <div className="space-y-2">
@@ -379,7 +533,10 @@ export default function ApisPage() {
                         </h3>
                         <p className="text-sm text-gray-600">{apiInfo.name}</p>
                         <div className="flex items-center space-x-4 mt-2 text-sm text-gray-500">
-                          <span>Instância: {config.instance_name}</span>
+                          <span>Servidor: {config.server_url}</span>
+                          {config.instance_name && (
+                            <span>Instância: {config.instance_name}</span>
+                          )}
                           {config.phone_number && (
                             <span>Número: {config.phone_number}</span>
                           )}

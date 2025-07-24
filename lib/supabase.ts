@@ -14,6 +14,7 @@ export type Database = {
           user_id: string
           name: string
           api_type: 'evolution_web' | 'evolution_cloud' | 'meta_cloud'
+          server_url: string
           instance_name: string | null
           access_token: string
           phone_number: string | null
@@ -26,6 +27,7 @@ export type Database = {
           user_id: string
           name: string
           api_type: 'evolution_web' | 'evolution_cloud' | 'meta_cloud'
+          server_url: string
           instance_name?: string | null
           access_token: string
           phone_number?: string | null
@@ -35,6 +37,7 @@ export type Database = {
         Update: {
           name?: string
           api_type?: 'evolution_web' | 'evolution_cloud' | 'meta_cloud'
+          server_url?: string
           instance_name?: string | null
           access_token?: string
           phone_number?: string | null
