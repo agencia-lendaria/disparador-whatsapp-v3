@@ -1,0 +1,30 @@
+{
+    "mcpServers": {
+      "supabase-agencia": {
+        "command": "npx",
+        "args": [
+          "-y",
+          "@supabase/mcp-server-supabase@latest",
+          "--access-token",
+          "sbp_25f272a9dd8af6cb4c47ff3e282d18d59dca08fe-TIRA_APOS_TRACO"
+        ]
+      },
+      "context7": {
+        "command": "npx",
+        "args": ["-y", "@upstash/context7-mcp"]
+      },
+      "@magicuidesign/mcp": {
+        "command": "npx",
+        "args": ["-y", "@magicuidesign/mcp@latest"]
+      },
+      "supabase-tuan": {
+        "command": "npx",
+        "args": [
+          "-y",
+          "@supabase/mcp-server-supabase@latest",
+          "--access-token",
+          "sbp_a7184c1dfd6af741abb900d9a55b5149d0f5d6c1"
+        ]
+      }
+    }
+  }
