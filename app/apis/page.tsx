@@ -47,6 +47,7 @@ export default function ApisPage() {
     phone_number_id: ''
   })
   const [testing, setTesting] = useState<string | null>(null)
+  const [saving, setSaving] = useState(false)
 
   useEffect(() => {
     fetchConfigurations()
@@ -74,10 +75,14 @@ export default function ApisPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    setSaving(true)
     
     try {
       const { data: { user } } = await supabase.auth.getUser()
-      if (!user) return
+      if (!user) {
+        alert('❌ Sessão expirada. Faça login novamente.')
+        return
+      }
 
       const payload = {
         user_id: user.id,
@@ -107,10 +112,14 @@ export default function ApisPage() {
 
       if (error) throw error
 
+      alert(`✅ ${editingConfig ? 'Configuração atualizada' : 'Configuração salva'} com sucesso!`)
       resetForm()
       fetchConfigurations()
     } catch (error) {
       console.error('Error saving configuration:', error)
+      alert(`❌ Erro ao ${editingConfig ? 'atualizar' : 'salvar'} configuração: ${error.message}`)
+    } finally {
+      setSaving(false)
     }
   }
 
@@ -185,27 +194,29 @@ export default function ApisPage() {
       if (error) throw error
       
       if (isConnected) {
-        alert('✅ Conexão com a API estabelecida com sucesso!\n\n' +
+        const apiTypeNames = {
+          'evolution_web': 'Evolution API (WhatsApp Web)',
+          'evolution_cloud': 'Evolution API (Cloud API)',
+          'meta_cloud': 'WhatsApp Cloud API (Meta)'
+        }
+        
+        alert('✅ Conexão estabelecida com sucesso!\n\n' +
+              `API: ${apiTypeNames[config.api_type]}\n` +
               `Servidor: ${config.server_url}\n` +
               (config.instance_name ? `Instância: ${config.instance_name}\n` : '') +
-              'Todas as credenciais estão funcionando corretamente.')
-      } else {
-        alert('❌ Falha na conexão com a API.\n\n' +
-              'Verifique:\n' +
-              '• URL do servidor está correta\n' +
-              '• Token de acesso é válido\n' +
-              '• Nome da instância existe (Evolution API)\n' +
-              '• Phone Number ID está correto (Meta Cloud API)')
+              (config.phone_number_id ? `Phone Number ID: ${config.phone_number_id}\n` : '') +
+              '\nTodas as credenciais foram validadas e a API está funcionando corretamente.')
       }
       
       fetchConfigurations()
     } catch (error) {
       console.error('Error testing connection:', error)
-      alert(`❌ Erro ao testar conexão: ${error.message}\n\n` +
-            'Dicas de solução:\n' +
-            '• Verifique se a URL do servidor está acessível\n' +
-            '• Confirme se o token tem as permissões necessárias\n' +
-            '• Teste a conectividade com a internet')
+      
+      // Show the specific error message from the API test functions
+      alert(`❌ Falha na conexão: ${error.message}\n\n` +
+            `Configuração: ${config.name}\n` +
+            `Tipo: ${config.api_type}\n` +
+            `Servidor: ${config.server_url}`)
       
       // Mark as inactive on error
       await supabase
@@ -221,37 +232,59 @@ export default function ApisPage() {
 
   const testEvolutionApi = async (config: ApiConfiguration): Promise<boolean> => {
     try {
+      if (!config.instance_name) {
+        throw new Error('Nome da instância é obrigatório para Evolution API')
+      }
+
       const baseUrl = config.server_url || 'https://evolution-ops.agencialendaria.ai'
-      const response = await fetch(`${baseUrl}/instance/fetchInstances`, {
+      const fullUrl = `${baseUrl}/instance/connect/${config.instance_name}`
+      
+      // Log request for debugging if needed
+      console.log(`Testing Evolution API connection: ${config.instance_name}`)
+      
+      // Try without Content-Type first (some APIs don't like it on GET)
+      const response = await fetch(fullUrl, {
         method: 'GET',
         headers: {
-          'Authorization': `Bearer ${config.access_token}`,
-          'Content-Type': 'application/json'
+          'apikey': config.access_token
         },
         signal: AbortSignal.timeout(10000) // 10s timeout
       })
 
       if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`)
+        if (response.status === 401) {
+          throw new Error('Chave API inválida. Verifique se a AUTHENTICATION_API_KEY está correta.')
+        } else if (response.status === 403) {
+          throw new Error('Acesso negado. Verifique as permissões da chave API.')
+        } else if (response.status === 404) {
+          throw new Error(`Instância '${config.instance_name}' não encontrada no servidor.\n\nVerifique se:\n• O nome da instância está correto\n• A instância foi criada no servidor Evolution API\n• A instância está ativa`)
+        } else if (response.status >= 500) {
+          throw new Error('Erro interno do servidor Evolution API. Tente novamente em alguns minutos.')
+        } else {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`)
+        }
       }
 
       const data = await response.json()
       
-      // Check if instance exists in the response
-      if (config.instance_name) {
-        const instanceExists = data.some((instance: any) => 
-          instance.instance?.instanceName === config.instance_name
-        )
-        
-        if (!instanceExists) {
-          throw new Error(`Instância '${config.instance_name}' não encontrada`)
-        }
+      // Validate that we got instance data
+      if (!data || !data.instance) {
+        throw new Error('Resposta inesperada da API. A instância pode não estar configurada corretamente.')
       }
-
+      
       return true
     } catch (error) {
       console.error('Evolution API test failed:', error)
-      return false
+      
+      // Network or timeout errors
+      if (error.name === 'AbortError' || error.name === 'TimeoutError') {
+        throw new Error('Timeout na conexão. Verifique se o servidor está acessível.')
+      } else if (error.name === 'TypeError' && error.message.includes('fetch')) {
+        throw new Error('Erro de rede. Verifique a URL do servidor e sua conexão com a internet.')
+      }
+      
+      // Re-throw our custom errors
+      throw error
     }
   }
 
@@ -273,9 +306,15 @@ export default function ApisPage() {
 
       if (!response.ok) {
         if (response.status === 401) {
-          throw new Error('Token de acesso inválido')
+          throw new Error('Token de acesso inválido. Verifique se o token tem as permissões necessárias.')
+        } else if (response.status === 403) {
+          throw new Error('Acesso negado. O token pode não ter permissão para acessar este Phone Number ID.')
         } else if (response.status === 404) {
-          throw new Error('Phone Number ID não encontrado')
+          throw new Error('Phone Number ID não encontrado. Verifique se o ID está correto.')
+        } else if (response.status === 429) {
+          throw new Error('Muitas tentativas. Aguarde alguns minutos antes de tentar novamente.')
+        } else if (response.status >= 500) {
+          throw new Error('Erro interno da API do Meta. Tente novamente em alguns minutos.')
         } else {
           throw new Error(`HTTP ${response.status}: ${response.statusText}`)
         }
@@ -285,13 +324,22 @@ export default function ApisPage() {
       
       // Check if we got valid phone number data
       if (!data.id) {
-        throw new Error('Resposta inválida da API')
+        throw new Error('Resposta inválida da API. O Phone Number ID pode estar incorreto.')
       }
 
       return true
     } catch (error) {
       console.error('Meta Cloud API test failed:', error)
-      return false
+      
+      // Network or timeout errors
+      if (error.name === 'AbortError' || error.name === 'TimeoutError') {
+        throw new Error('Timeout na conexão. Verifique se a API do Meta está acessível.')
+      } else if (error.name === 'TypeError' && error.message.includes('fetch')) {
+        throw new Error('Erro de rede. Verifique a URL da API e sua conexão com a internet.')
+      }
+      
+      // Re-throw our custom errors
+      throw error
     }
   }
 
@@ -376,6 +424,7 @@ export default function ApisPage() {
                     value={formData.name}
                     onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
                     placeholder="Ex: WhatsApp Principal"
+                    disabled={saving}
                     required
                   />
                 </div>
@@ -395,6 +444,7 @@ export default function ApisPage() {
                         : ''
                     }))}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    disabled={saving}
                     required
                   >
                     <option value="evolution_web">Evolution API (WhatsApp Web)</option>
@@ -416,6 +466,7 @@ export default function ApisPage() {
                         ? 'https://graph.facebook.com/v23.0'
                         : 'https://sua-evolution-api.com'
                     }
+                    disabled={saving}
                     required
                   />
                   <p className="text-sm text-gray-500">
@@ -434,6 +485,7 @@ export default function ApisPage() {
                       value={formData.instance_name}
                       onChange={(e) => setFormData(prev => ({ ...prev, instance_name: e.target.value }))}
                       placeholder="Ex: instance01"
+                      disabled={saving}
                       required
                     />
                     <p className="text-sm text-gray-500">
@@ -450,6 +502,7 @@ export default function ApisPage() {
                       value={formData.phone_number}
                       onChange={(e) => setFormData(prev => ({ ...prev, phone_number: e.target.value }))}
                       placeholder="+55 11 99999-9999"
+                      disabled={saving}
                     />
                   </div>
                 )}
@@ -462,6 +515,7 @@ export default function ApisPage() {
                       value={formData.phone_number_id}
                       onChange={(e) => setFormData(prev => ({ ...prev, phone_number_id: e.target.value }))}
                       placeholder="ID fornecido pela Meta"
+                      disabled={saving}
                       required
                     />
                   </div>
@@ -469,23 +523,38 @@ export default function ApisPage() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="access_token">Token de Acesso</Label>
+                <Label htmlFor="access_token">
+                  {(formData.api_type === 'evolution_web' || formData.api_type === 'evolution_cloud') 
+                    ? 'Chave API Global (AUTHENTICATION_API_KEY)' 
+                    : 'Token de Acesso'}
+                </Label>
                 <Textarea
                   id="access_token"
                   value={formData.access_token}
                   onChange={(e) => setFormData(prev => ({ ...prev, access_token: e.target.value }))}
-                  placeholder="Cole aqui seu token de acesso..."
+                  placeholder={
+                    (formData.api_type === 'evolution_web' || formData.api_type === 'evolution_cloud')
+                      ? "Cole aqui a chave AUTHENTICATION_API_KEY do servidor Evolution API..."
+                      : "Cole aqui seu token de acesso..."
+                  }
                   rows={3}
+                  disabled={saving}
                   required
                 />
+                {(formData.api_type === 'evolution_web' || formData.api_type === 'evolution_cloud') && (
+                  <p className="text-sm text-gray-500">
+                    Esta é a chave API global do servidor Evolution API, não um token específico da instância.
+                  </p>
+                )}
               </div>
 
               <div className="flex justify-end space-x-4">
-                <Button type="button" variant="outline" onClick={resetForm}>
+                <Button type="button" variant="outline" onClick={resetForm} disabled={saving}>
                   Cancelar
                 </Button>
-                <Button type="submit" className="gradient-primary text-white">
-                  {editingConfig ? 'Atualizar' : 'Salvar'} Configuração
+                <Button type="submit" className="gradient-primary text-white" disabled={saving}>
+                  {saving ? 'Salvando...' : (editingConfig ? 'Atualizar' : 'Salvar')} 
+                  {saving ? '' : ' Configuração'}
                 </Button>
               </div>
             </form>
