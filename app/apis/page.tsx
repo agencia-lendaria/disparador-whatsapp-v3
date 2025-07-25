@@ -26,6 +26,7 @@ interface ApiConfiguration {
   api_type: 'evolution_web' | 'evolution_cloud' | 'meta_cloud'
   server_url: string
   instance_name: string | null
+  access_token: string
   phone_number: string | null
   phone_number_id: string | null
   is_active: boolean
@@ -117,7 +118,7 @@ export default function ApisPage() {
       fetchConfigurations()
     } catch (error) {
       console.error('Error saving configuration:', error)
-      alert(`❌ Erro ao ${editingConfig ? 'atualizar' : 'salvar'} configuração: ${error.message}`)
+      alert(`❌ Erro ao ${editingConfig ? 'atualizar' : 'salvar'} configuração: ${error instanceof Error ? error.message : 'Erro desconhecido'}`)
     } finally {
       setSaving(false)
     }
@@ -213,7 +214,7 @@ export default function ApisPage() {
       console.error('Error testing connection:', error)
       
       // Show the specific error message from the API test functions
-      alert(`❌ Falha na conexão: ${error.message}\n\n` +
+      alert(`❌ Falha na conexão: ${error instanceof Error ? error.message : 'Erro desconhecido'}\n\n` +
             `Configuração: ${config.name}\n` +
             `Tipo: ${config.api_type}\n` +
             `Servidor: ${config.server_url}`)
@@ -277,9 +278,9 @@ export default function ApisPage() {
       console.error('Evolution API test failed:', error)
       
       // Network or timeout errors
-      if (error.name === 'AbortError' || error.name === 'TimeoutError') {
+      if (error instanceof Error && (error.name === 'AbortError' || error.name === 'TimeoutError')) {
         throw new Error('Timeout na conexão. Verifique se o servidor está acessível.')
-      } else if (error.name === 'TypeError' && error.message.includes('fetch')) {
+      } else if (error instanceof Error && error.name === 'TypeError' && error.message.includes('fetch')) {
         throw new Error('Erro de rede. Verifique a URL do servidor e sua conexão com a internet.')
       }
       
@@ -332,9 +333,9 @@ export default function ApisPage() {
       console.error('Meta Cloud API test failed:', error)
       
       // Network or timeout errors
-      if (error.name === 'AbortError' || error.name === 'TimeoutError') {
+      if (error instanceof Error && (error.name === 'AbortError' || error.name === 'TimeoutError')) {
         throw new Error('Timeout na conexão. Verifique se a API do Meta está acessível.')
-      } else if (error.name === 'TypeError' && error.message.includes('fetch')) {
+      } else if (error instanceof Error && error.name === 'TypeError' && error.message.includes('fetch')) {
         throw new Error('Erro de rede. Verifique a URL da API e sua conexão com a internet.')
       }
       

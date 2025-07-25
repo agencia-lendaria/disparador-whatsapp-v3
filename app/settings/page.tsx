@@ -17,7 +17,9 @@ import {
   Key,
   Globe,
   Clock,
-  AlertTriangle
+  AlertTriangle,
+  Download,
+  Trash2
 } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 

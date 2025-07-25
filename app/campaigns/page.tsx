@@ -15,8 +15,13 @@ import {
   MoreHorizontal,
   Calendar,
   Users,
-  MessageSquare
+  MessageSquare,
+  Copy,
+  Edit,
+  Trash2,
+  StopCircle
 } from 'lucide-react'
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { supabase } from '@/lib/supabase'
 import { formatDate, getStatusColor, getStatusText } from '@/lib/utils'
 
@@ -41,9 +46,72 @@ export default function CampaignsPage() {
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
+  const [actionLoading, setActionLoading] = useState<string | null>(null)
 
   useEffect(() => {
     fetchCampaigns()
+    
+    // Configurar realtime subscription para campanhas
+    const subscription = supabase
+      .channel('campaigns_changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'campaigns'
+        },
+        (payload) => {
+          console.log('Campaign change received:', payload)
+          
+          if (payload.eventType === 'UPDATE') {
+            setCampaigns(prev => 
+              prev.map(campaign => 
+                campaign.id === payload.new.id
+                  ? { ...campaign, ...payload.new }
+                  : campaign
+              )
+            )
+          } else if (payload.eventType === 'INSERT') {
+            fetchCampaigns() // Recarregar para pegar dados completos
+          } else if (payload.eventType === 'DELETE') {
+            setCampaigns(prev => 
+              prev.filter(campaign => campaign.id !== payload.old.id)
+            )
+          }
+        }
+      )
+      .subscribe()
+
+    // Configurar subscription para contatos (para atualizar contadores)
+    const contactsSubscription = supabase
+      .channel('campaign_contacts_changes')
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'campaign_contacts'
+        },
+        (payload) => {
+          // Atualizar contador de mensagens enviadas quando status do contato muda
+          if (payload.new.status === 'sent' && payload.old.status !== 'sent') {
+            setCampaigns(prev => 
+              prev.map(campaign => 
+                campaign.id === payload.new.campaign_id
+                  ? { ...campaign, sent_count: campaign.sent_count + 1 }
+                  : campaign
+              )
+            )
+          }
+        }
+      )
+      .subscribe()
+
+    return () => {
+      subscription.unsubscribe()
+      contactsSubscription.unsubscribe()
+    }
   }, [])
 
   const fetchCampaigns = async () => {
@@ -85,7 +153,9 @@ export default function CampaignsPage() {
         completed_at: campaign.completed_at,
         contacts_count: campaign.campaign_contacts?.length || 0,
         sent_count: campaign.campaign_contacts?.filter(c => c.status === 'sent').length || 0,
-        api_configuration: campaign.api_configurations
+        api_configuration: Array.isArray(campaign.api_configurations) 
+          ? campaign.api_configurations[0] 
+          : campaign.api_configurations
       })) || []
 
       setCampaigns(campaignsWithStats)
@@ -93,6 +163,62 @@ export default function CampaignsPage() {
       console.error('Error fetching campaigns:', error)
     } finally {
       setLoading(false)
+    }
+  }
+
+  const handleCampaignAction = async (campaignId: string, action: 'pause' | 'resume' | 'cancel' | 'duplicate' | 'delete') => {
+    setActionLoading(campaignId)
+    try {
+      let response
+      
+      switch (action) {
+        case 'pause':
+          response = await fetch(`/api/campaigns/${campaignId}/pause`, { method: 'PUT' })
+          break
+        case 'resume':
+          response = await fetch(`/api/campaigns/${campaignId}/resume`, { method: 'PUT' })
+          break
+        case 'cancel':
+          response = await fetch(`/api/campaigns/${campaignId}/cancel`, { method: 'PUT' })
+          break
+        case 'duplicate':
+          response = await fetch(`/api/campaigns/${campaignId}/duplicate`, { method: 'POST' })
+          break
+        case 'delete':
+          if (!confirm('Tem certeza que deseja excluir esta campanha? Esta ação não pode ser desfeita.')) {
+            return
+          }
+          response = await fetch(`/api/campaigns/${campaignId}/delete`, { method: 'DELETE' })
+          break
+      }
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Erro ao executar ação')
+      }
+
+      const result = await response.json()
+      
+      if (action === 'delete') {
+        // Remover campanha da lista
+        setCampaigns(prev => prev.filter(c => c.id !== campaignId))
+      } else if (action === 'duplicate') {
+        // Recarregar lista para mostrar nova campanha
+        await fetchCampaigns()
+      } else {
+        // Atualizar status da campanha
+        setCampaigns(prev => prev.map(campaign => 
+          campaign.id === campaignId 
+            ? { ...campaign, status: result.campaign.status }
+            : campaign
+        ))
+      }
+      
+    } catch (error) {
+      console.error(`Error ${action} campaign:`, error)
+      alert(`Erro ao ${action === 'pause' ? 'pausar' : action === 'resume' ? 'retomar' : action === 'cancel' ? 'cancelar' : action === 'duplicate' ? 'duplicar' : 'excluir'} campanha: ${error instanceof Error ? error.message : 'Erro desconhecido'}`)
+    } finally {
+      setActionLoading(null)
     }
   }
 
@@ -286,20 +412,69 @@ export default function CampaignsPage() {
 
                   <div className="flex items-center space-x-2">
                     {campaign.status === 'running' && (
-                      <Button size="sm" variant="outline">
+                      <Button 
+                        size="sm" 
+                        variant="outline"
+                        onClick={() => handleCampaignAction(campaign.id, 'pause')}
+                        disabled={actionLoading === campaign.id}
+                      >
                         <Pause className="h-4 w-4 mr-1" />
                         Pausar
                       </Button>
                     )}
                     {campaign.status === 'paused' && (
-                      <Button size="sm" variant="outline">
+                      <Button 
+                        size="sm" 
+                        variant="outline"
+                        onClick={() => handleCampaignAction(campaign.id, 'resume')}
+                        disabled={actionLoading === campaign.id}
+                      >
                         <Play className="h-4 w-4 mr-1" />
                         Retomar
                       </Button>
                     )}
-                    <Button size="sm" variant="outline">
-                      <MoreHorizontal className="h-4 w-4" />
-                    </Button>
+                    
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button 
+                          size="sm" 
+                          variant="outline"
+                          disabled={actionLoading === campaign.id}
+                        >
+                          <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem 
+                          onClick={() => window.location.href = `/campaigns/${campaign.id}/edit`}
+                        >
+                          <Edit className="h-4 w-4 mr-2" />
+                          Editar
+                        </DropdownMenuItem>
+                        <DropdownMenuItem 
+                          onClick={() => handleCampaignAction(campaign.id, 'duplicate')}
+                        >
+                          <Copy className="h-4 w-4 mr-2" />
+                          Duplicar
+                        </DropdownMenuItem>
+                        {['running', 'paused', 'scheduled'].includes(campaign.status) && (
+                          <DropdownMenuItem 
+                            onClick={() => handleCampaignAction(campaign.id, 'cancel')}
+                            className="text-orange-600"
+                          >
+                            <StopCircle className="h-4 w-4 mr-2" />
+                            Cancelar
+                          </DropdownMenuItem>
+                        )}
+                        <DropdownMenuItem 
+                          onClick={() => handleCampaignAction(campaign.id, 'delete')}
+                          className="text-red-600"
+                        >
+                          <Trash2 className="h-4 w-4 mr-2" />
+                          Excluir
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </div>
                 </div>
               </CardContent>

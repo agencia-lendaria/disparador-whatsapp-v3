@@ -1,0 +1,8 @@
+{
+  "enabledMcpjsonServers": [
+    "supabase-agencia",
+    "context7",
+    "@magicuidesign/mcp",
+    "supabase-tuan"
+  ]
+}

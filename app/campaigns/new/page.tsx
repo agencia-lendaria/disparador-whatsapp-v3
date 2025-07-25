@@ -22,6 +22,7 @@ import {
   Save,
   Eye
 } from 'lucide-react'
+import { FileDropzone } from '@/components/ui/file-dropzone'
 import { supabase } from '@/lib/supabase'
 import { Database } from '@/lib/supabase'
 
@@ -68,6 +69,8 @@ export default function NewCampaignPage() {
   
   const [contacts, setContacts] = useState<ContactData[]>([])
   const [messages, setMessages] = useState<MessageData[]>([])
+  const [csvText, setCsvText] = useState('')
+  const [importMode, setImportMode] = useState<'file' | 'text'>('file')
   const [sendingConfig, setSendingConfig] = useState<SendingConfig>({
     min_delay_seconds: 5,
     max_delay_seconds: 10,
@@ -118,6 +121,37 @@ export default function NewCampaignPage() {
     }
   }
 
+  const parseCSVText = (text: string) => {
+    const lines = text.trim().split('\n')
+    if (lines.length < 2) return []
+    
+    const headers = lines[0].split(',').map(h => h.trim())
+    const contactsData: ContactData[] = []
+    
+    for (let i = 1; i < lines.length; i++) {
+      const values = lines[i].split(',').map(v => v.trim())
+      if (values.length >= 3 && values[1] && values[2]) {
+        const contact: ContactData = {
+          external_id: values[0] || `contact_${i}`,
+          phone_number: values[1] || '',
+          name: values[2] || '',
+          custom_fields: {}
+        }
+        
+        // Adicionar campos personalizados
+        for (let j = 3; j < values.length && j < headers.length; j++) {
+          if (values[j] && headers[j]) {
+            contact.custom_fields![headers[j]] = values[j]
+          }
+        }
+        
+        contactsData.push(contact)
+      }
+    }
+    
+    return contactsData
+  }
+
   const handleContactsUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
     if (!file) return
@@ -125,36 +159,32 @@ export default function NewCampaignPage() {
     const reader = new FileReader()
     reader.onload = (e) => {
       const text = e.target?.result as string
-      const lines = text.split('\n')
-      const headers = lines[0].split(',').map(h => h.trim())
-      
-      const contactsData: ContactData[] = []
-      
-      for (let i = 1; i < lines.length; i++) {
-        const values = lines[i].split(',').map(v => v.trim())
-        if (values.length >= 3) {
-          const contact: ContactData = {
-            external_id: values[0] || `contact_${i}`,
-            phone_number: values[1] || '',
-            name: values[2] || '',
-            custom_fields: {}
-          }
-          
-          // Adicionar campos personalizados
-          for (let j = 3; j < values.length && j < headers.length; j++) {
-            if (values[j] && headers[j]) {
-              contact.custom_fields![headers[j]] = values[j]
-            }
-          }
-          
-          contactsData.push(contact)
-        }
-      }
-      
+      const contactsData = parseCSVText(text)
       setContacts(contactsData)
     }
     
     reader.readAsText(file)
+  }
+
+  const handleDropzoneFileSelect = (file: File) => {
+    const reader = new FileReader()
+    reader.onload = (e) => {
+      const text = e.target?.result as string
+      const contactsData = parseCSVText(text)
+      setContacts(contactsData)
+    }
+    
+    reader.readAsText(file)
+  }
+
+  const handleCSVTextChange = (text: string) => {
+    setCsvText(text)
+    if (text.trim()) {
+      const contactsData = parseCSVText(text)
+      setContacts(contactsData)
+    } else {
+      setContacts([])
+    }
   }
 
   const addMessage = () => {
@@ -311,20 +341,71 @@ export default function NewCampaignPage() {
         return (
           <div className="space-y-6">
             <div>
-              <Label htmlFor="contacts_file">Upload de Contatos (CSV)</Label>
-              <div className="mt-2">
-                <input
-                  type="file"
-                  id="contacts_file"
-                  accept=".csv,.txt"
-                  onChange={handleContactsUpload}
-                  className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
-                />
-                <p className="text-sm text-gray-500 mt-2">
-                  Formato: ID, Telefone, Nome, Campos Personalizados...
-                </p>
+              <Label>Método de Importação</Label>
+              <div className="flex gap-4 mt-2">
+                <label className="flex items-center">
+                  <input
+                    type="radio"
+                    name="importMode"
+                    value="file"
+                    checked={importMode === 'file'}
+                    onChange={(e) => setImportMode(e.target.value as 'file' | 'text')}
+                    className="mr-2"
+                  />
+                  Upload de Arquivo
+                </label>
+                <label className="flex items-center">
+                  <input
+                    type="radio"
+                    name="importMode"
+                    value="text"
+                    checked={importMode === 'text'}
+                    onChange={(e) => setImportMode(e.target.value as 'file' | 'text')}
+                    className="mr-2"
+                  />
+                  Colar CSV
+                </label>
               </div>
             </div>
+
+            {importMode === 'file' ? (
+              <div>
+                <Label>Upload de Contatos (CSV)</Label>
+                <div className="mt-2">
+                  <FileDropzone
+                    onFileSelect={handleDropzoneFileSelect}
+                    accept=".csv,.txt"
+                    maxSize={5}
+                  />
+                  <p className="text-sm text-gray-500 mt-2">
+                    Formato: ID, Telefone, Nome, Campos Personalizados...
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <div>
+                <Label htmlFor="csv_text">Cole o conteúdo CSV</Label>
+                <Textarea
+                  id="csv_text"
+                  value={csvText}
+                  onChange={(e) => handleCSVTextChange(e.target.value)}
+                  placeholder="ID,Telefone,Nome,Campo1,Campo2&#10;1,5511999999999,João Silva,valor1,valor2&#10;2,5511888888888,Maria Santos,valor3,valor4"
+                  rows={8}
+                  className="mt-2 font-mono text-sm"
+                />
+                <p className="text-sm text-gray-500 mt-2">
+                  Cole aqui o conteúdo do seu CSV. Primeira linha deve conter os cabeçalhos.
+                </p>
+                <div className="mt-2 p-3 bg-blue-50 rounded-md">
+                  <p className="text-sm text-blue-800 font-semibold mb-1">Exemplo:</p>
+                  <code className="text-xs text-blue-700">
+                    ID,Telefone,Nome,Empresa<br />
+                    1,5511999999999,João Silva,Tech Corp<br />
+                    2,5511888888888,Maria Santos,Design Ltd
+                  </code>
+                </div>
+              </div>
+            )}
 
             {contacts.length > 0 && (
               <div>
@@ -338,6 +419,7 @@ export default function NewCampaignPage() {
                         <th className="p-2 text-left">ID</th>
                         <th className="p-2 text-left">Telefone</th>
                         <th className="p-2 text-left">Nome</th>
+                        <th className="p-2 text-left">Campos Extras</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -346,6 +428,12 @@ export default function NewCampaignPage() {
                           <td className="p-2">{contact.external_id}</td>
                           <td className="p-2">{contact.phone_number}</td>
                           <td className="p-2">{contact.name}</td>
+                          <td className="p-2 text-xs text-gray-500">
+                            {Object.keys(contact.custom_fields || {}).length > 0
+                              ? Object.keys(contact.custom_fields || {}).join(', ')
+                              : '-'
+                            }
+                          </td>
                         </tr>
                       ))}
                     </tbody>
