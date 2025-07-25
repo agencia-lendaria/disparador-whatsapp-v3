@@ -3,6 +3,8 @@
     "supabase-agencia",
     "context7",
     "@magicuidesign/mcp",
-    "supabase-tuan"
-  ]
+    "supabase-tuan",
+    "playwright"
+  ],
+  "enableAllProjectMcpServers": true
 }
