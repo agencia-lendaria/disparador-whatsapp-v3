@@ -42,17 +42,17 @@ export function getStatusColor(status: string): string {
   switch (status) {
     case 'completed':
     case 'sent':
-      return 'text-green-600 bg-green-50'
+      return 'text-green-600 bg-green-50 dark:text-green-400 dark:bg-green-950/20'
     case 'running':
-      return 'text-blue-600 bg-blue-50'
+      return 'text-blue-600 bg-blue-50 dark:text-blue-400 dark:bg-blue-950/20'
     case 'failed':
-      return 'text-red-600 bg-red-50'
+      return 'text-red-600 bg-red-50 dark:text-red-400 dark:bg-red-950/20'
     case 'paused':
-      return 'text-yellow-600 bg-yellow-50'
+      return 'text-yellow-600 bg-yellow-50 dark:text-yellow-400 dark:bg-yellow-950/20'
     case 'scheduled':
-      return 'text-purple-600 bg-purple-50'
+      return 'text-purple-600 bg-purple-50 dark:text-purple-400 dark:bg-purple-950/20'
     default:
-      return 'text-gray-600 bg-gray-50'
+      return 'text-muted-foreground bg-accent/10'
   }
 }
 

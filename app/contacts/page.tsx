@@ -162,13 +162,13 @@ export default function ContactsPage() {
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'sent':
-        return 'text-green-600 bg-green-50'
+        return 'text-green-600 bg-green-50 dark:text-green-400 dark:bg-green-950/20'
       case 'pending':
-        return 'text-yellow-600 bg-yellow-50'
+        return 'text-yellow-600 bg-yellow-50 dark:text-yellow-400 dark:bg-yellow-950/20'
       case 'failed':
-        return 'text-red-600 bg-red-50'
+        return 'text-red-600 bg-red-50 dark:text-red-400 dark:bg-red-950/20'
       default:
-        return 'text-gray-600 bg-gray-50'
+        return 'text-muted-foreground bg-accent/10'
     }
   }
 
@@ -189,10 +189,10 @@ export default function ContactsPage() {
     return (
       <div className="p-6">
         <div className="animate-pulse">
-          <div className="h-8 bg-gray-200 rounded w-1/4 mb-6"></div>
+          <div className="h-8 bg-muted rounded w-1/4 mb-6"></div>
           <div className="space-y-4">
             {[...Array(5)].map((_, i) => (
-              <div key={i} className="h-16 bg-gray-200 rounded"></div>
+              <div key={i} className="h-16 bg-muted rounded"></div>
             ))}
           </div>
         </div>
@@ -205,8 +205,8 @@ export default function ContactsPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Contatos</h1>
-          <p className="text-gray-600 mt-1">
+          <h1 className="text-3xl font-bold text-foreground">Contatos</h1>
+          <p className="text-muted-foreground mt-1">
             Gerencie todos os contatos das suas campanhas
           </p>
         </div>
@@ -234,7 +234,7 @@ export default function ContactsPage() {
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Total</p>
+                <p className="text-sm font-medium text-muted-foreground">Total</p>
                 <p className="text-2xl font-bold text-blue-600">
                   {contacts.length}
                 </p>
@@ -248,7 +248,7 @@ export default function ContactsPage() {
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Enviados</p>
+                <p className="text-sm font-medium text-muted-foreground">Enviados</p>
                 <p className="text-2xl font-bold text-green-600">
                   {contacts.filter(c => c.status === 'sent').length}
                 </p>
@@ -262,7 +262,7 @@ export default function ContactsPage() {
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Pendentes</p>
+                <p className="text-sm font-medium text-muted-foreground">Pendentes</p>
                 <p className="text-2xl font-bold text-yellow-600">
                   {contacts.filter(c => c.status === 'pending').length}
                 </p>
@@ -276,7 +276,7 @@ export default function ContactsPage() {
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Falharam</p>
+                <p className="text-sm font-medium text-muted-foreground">Falharam</p>
                 <p className="text-2xl font-bold text-red-600">
                   {contacts.filter(c => c.status === 'failed').length}
                 </p>
@@ -293,7 +293,7 @@ export default function ContactsPage() {
           <div className="flex flex-col sm:flex-row gap-4">
             <div className="flex-1">
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
                 <Input
                   placeholder="Buscar por nome, telefone ou ID..."
                   value={searchTerm}
@@ -303,11 +303,11 @@ export default function ContactsPage() {
               </div>
             </div>
             <div className="flex items-center space-x-2">
-              <Filter className="h-4 w-4 text-gray-500" />
+              <Filter className="h-4 w-4 text-muted-foreground" />
               <select
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
-                className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="px-3 py-2 border border-border rounded-md bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
               >
                 <option value="all">Todos os status</option>
                 <option value="pending">Pendente</option>
@@ -324,11 +324,11 @@ export default function ContactsPage() {
         {filteredContacts.length === 0 ? (
           <Card>
             <CardContent className="p-12 text-center">
-              <Users className="h-12 w-12 mx-auto mb-4 text-gray-400" />
-              <h3 className="text-lg font-medium text-gray-900 mb-2">
+              <Users className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+              <h3 className="text-lg font-medium text-foreground mb-2">
                 {contacts.length === 0 ? 'Nenhum contato encontrado' : 'Nenhum contato corresponde aos filtros'}
               </h3>
-              <p className="text-gray-600 mb-6">
+              <p className="text-muted-foreground mb-6">
                 {contacts.length === 0 
                   ? 'Seus contatos de campanhas aparecerão aqui'
                   : 'Tente ajustar os filtros de busca'
@@ -353,45 +353,45 @@ export default function ContactsPage() {
             <CardContent className="p-0">
               <div className="overflow-x-auto">
                 <table className="w-full">
-                  <thead className="bg-gray-50">
+                  <thead className="bg-accent/10">
                     <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                         Contato
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                         Telefone
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                         Status
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                         Campanha
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                         Criado em
                       </th>
-                      <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-6 py-3 text-right text-xs font-medium text-muted-foreground uppercase tracking-wider">
                         Ações
                       </th>
                     </tr>
                   </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
+                  <tbody className="bg-background divide-y divide-border">
                     {filteredContacts.map((contact) => (
-                      <tr key={contact.id} className="hover:bg-gray-50">
+                      <tr key={contact.id} className="hover:bg-accent/10">
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div>
-                            <div className="text-sm font-medium text-gray-900">
+                            <div className="text-sm font-medium text-foreground">
                               {contact.name || 'Sem nome'}
                             </div>
                             {contact.external_id && (
-                              <div className="text-sm text-gray-500">
+                              <div className="text-sm text-muted-foreground">
                                 ID: {contact.external_id}
                               </div>
                             )}
                           </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm text-gray-900 font-mono">
+                          <div className="text-sm text-foreground font-mono">
                             {formatPhoneNumber(contact.phone_number)}
                           </div>
                         </td>
@@ -404,11 +404,11 @@ export default function ContactsPage() {
                           </Badge>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm text-gray-900">
+                          <div className="text-sm text-foreground">
                             {contact.campaigns?.name || 'N/A'}
                           </div>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">
                           {new Date(contact.created_at).toLocaleDateString('pt-BR')}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">

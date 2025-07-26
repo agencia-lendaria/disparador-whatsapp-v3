@@ -71,8 +71,8 @@ export function FileDropzone({
         onDrop={handleDrop}
         className={`
           relative border-2 border-dashed rounded-lg p-8 text-center transition-colors cursor-pointer
-          ${isDragOver ? 'border-blue-500 bg-blue-50' : 'border-gray-300 hover:border-gray-400'}
-          ${error ? 'border-red-300 bg-red-50' : ''}
+          ${isDragOver ? 'border-primary bg-primary/10' : 'border-border hover:border-muted-foreground'}
+          ${error ? 'border-destructive bg-destructive/10' : ''}
         `}
       >
         <input
@@ -87,8 +87,8 @@ export function FileDropzone({
             <div className="flex items-center justify-center space-x-2">
               <FileText className="h-8 w-8 text-green-500" />
               <div className="text-left">
-                <p className="font-medium text-green-700">{selectedFile.name}</p>
-                <p className="text-sm text-gray-500">
+                <p className="font-medium text-green-600 dark:text-green-400">{selectedFile.name}</p>
+                <p className="text-sm text-muted-foreground">
                   {(selectedFile.size / 1024).toFixed(1)} KB
                 </p>
               </div>
@@ -103,13 +103,13 @@ export function FileDropzone({
           </div>
         ) : (
           <div className="space-y-4">
-            <Upload className={`h-12 w-12 mx-auto ${isDragOver ? 'text-blue-500' : 'text-gray-400'}`} />
+            <Upload className={`h-12 w-12 mx-auto ${isDragOver ? 'text-primary' : 'text-muted-foreground'}`} />
             <div>
-              <p className="text-lg font-medium text-gray-700">
+              <p className="text-lg font-medium text-foreground">
                 {isDragOver ? 'Solte o arquivo aqui' : 'Arraste e solte seu arquivo'}
               </p>
-              <p className="text-gray-500">ou clique para selecionar</p>
-              <p className="text-sm text-gray-400 mt-2">
+              <p className="text-muted-foreground">ou clique para selecionar</p>
+              <p className="text-sm text-muted-foreground mt-2">
                 Formatos aceitos: {accept} • Máximo {maxSize}MB
               </p>
             </div>
@@ -118,7 +118,7 @@ export function FileDropzone({
       </div>
 
       {error && (
-        <p className="mt-2 text-sm text-red-600 flex items-center">
+        <p className="mt-2 text-sm text-destructive flex items-center">
           <X className="h-4 w-4 mr-1" />
           {error}
         </p>

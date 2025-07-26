@@ -121,8 +121,8 @@ export default function Dashboard() {
             <Card key={i}>
               <CardContent className="p-6">
                 <div className="animate-pulse">
-                  <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
-                  <div className="h-8 bg-gray-200 rounded w-1/2"></div>
+                  <div className="h-4 bg-muted rounded w-3/4 mb-2"></div>
+                  <div className="h-8 bg-muted rounded w-1/2"></div>
                 </div>
               </CardContent>
             </Card>
@@ -137,12 +137,12 @@ export default function Dashboard() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
-          <p className="text-gray-600 mt-1">
+          <h1 className="text-3xl font-bold text-foreground">Dashboard</h1>
+          <p className="text-muted-foreground mt-1">
             Visão geral das suas campanhas e estatísticas
           </p>
         </div>
-        <div className="text-sm text-gray-500">
+        <div className="text-sm text-muted-foreground">
           Última atualização: {formatDate(new Date())}
         </div>
       </div>
@@ -211,7 +211,7 @@ export default function Dashboard() {
           </CardHeader>
           <CardContent>
             {recentCampaigns.length === 0 ? (
-              <div className="text-center py-6 text-gray-500">
+              <div className="text-center py-6 text-muted-foreground">
                 <MessageSquare className="h-12 w-12 mx-auto mb-4 opacity-50" />
                 <p>Nenhuma campanha encontrada</p>
                 <p className="text-sm">Crie sua primeira campanha para começar</p>
@@ -221,22 +221,22 @@ export default function Dashboard() {
                 {recentCampaigns.map((campaign) => (
                   <div
                     key={campaign.id}
-                    className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
+                    className="flex items-center justify-between p-3 bg-accent/10 rounded-lg hover:bg-accent/20 transition-colors"
                   >
                     <div className="flex-1">
-                      <h3 className="font-medium text-gray-900">
+                      <h3 className="font-medium text-foreground">
                         {campaign.name}
                       </h3>
-                      <p className="text-sm text-gray-600">
+                      <p className="text-sm text-muted-foreground">
                         {formatDate(campaign.created_at)}
                       </p>
                     </div>
                     <div className="flex items-center space-x-3">
                       <div className="text-right">
-                        <div className="text-sm font-medium">
+                        <div className="text-sm font-medium text-foreground">
                           {campaign.sent_count}/{campaign.contacts_count}
                         </div>
-                        <p className="text-xs text-gray-500">enviadas</p>
+                        <p className="text-xs text-muted-foreground">enviadas</p>
                       </div>
                       <Badge 
                         className={getStatusColor(campaign.status)}
@@ -263,28 +263,28 @@ export default function Dashboard() {
           <CardContent>
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
-                <button className="p-4 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors text-left">
-                  <MessageSquare className="h-6 w-6 text-blue-600 mb-2" />
-                  <div className="text-sm font-medium">Nova Campanha</div>
-                  <div className="text-xs text-gray-600">Criar disparo</div>
+                <button className="p-4 bg-blue-50 hover:bg-blue-100 dark:bg-blue-950/20 dark:hover:bg-blue-950/30 rounded-lg transition-colors text-left border border-blue-200 dark:border-blue-800">
+                  <MessageSquare className="h-6 w-6 text-blue-600 dark:text-blue-400 mb-2" />
+                  <div className="text-sm font-medium text-foreground">Nova Campanha</div>
+                  <div className="text-xs text-muted-foreground">Criar disparo</div>
                 </button>
                 
-                <button className="p-4 bg-green-50 hover:bg-green-100 rounded-lg transition-colors text-left">
-                  <Users className="h-6 w-6 text-green-600 mb-2" />
-                  <div className="text-sm font-medium">Importar Contatos</div>
-                  <div className="text-xs text-gray-600">CSV ou planilha</div>
+                <button className="p-4 bg-green-50 hover:bg-green-100 dark:bg-green-950/20 dark:hover:bg-green-950/30 rounded-lg transition-colors text-left border border-green-200 dark:border-green-800">
+                  <Users className="h-6 w-6 text-green-600 dark:text-green-400 mb-2" />
+                  <div className="text-sm font-medium text-foreground">Importar Contatos</div>
+                  <div className="text-xs text-muted-foreground">CSV ou planilha</div>
                 </button>
                 
-                <button className="p-4 bg-orange-50 hover:bg-orange-100 rounded-lg transition-colors text-left">
-                  <Clock className="h-6 w-6 text-orange-600 mb-2" />
-                  <div className="text-sm font-medium">Agendar Envio</div>
-                  <div className="text-xs text-gray-600">Data e hora</div>
+                <button className="p-4 bg-orange-50 hover:bg-orange-100 dark:bg-orange-950/20 dark:hover:bg-orange-950/30 rounded-lg transition-colors text-left border border-orange-200 dark:border-orange-800">
+                  <Clock className="h-6 w-6 text-orange-600 dark:text-orange-400 mb-2" />
+                  <div className="text-sm font-medium text-foreground">Agendar Envio</div>
+                  <div className="text-xs text-muted-foreground">Data e hora</div>
                 </button>
                 
-                <button className="p-4 bg-purple-50 hover:bg-purple-100 rounded-lg transition-colors text-left">
-                  <CheckCircle className="h-6 w-6 text-purple-600 mb-2" />
-                  <div className="text-sm font-medium">Ver Relatórios</div>
-                  <div className="text-xs text-gray-600">Analytics</div>
+                <button className="p-4 bg-purple-50 hover:bg-purple-100 dark:bg-purple-950/20 dark:hover:bg-purple-950/30 rounded-lg transition-colors text-left border border-purple-200 dark:border-purple-800">
+                  <CheckCircle className="h-6 w-6 text-purple-600 dark:text-purple-400 mb-2" />
+                  <div className="text-sm font-medium text-foreground">Ver Relatórios</div>
+                  <div className="text-xs text-muted-foreground">Analytics</div>
                 </button>
               </div>
             </div>
@@ -305,24 +305,24 @@ export default function Dashboard() {
             <div className="flex items-center space-x-3">
               <div className="status-dot success"></div>
               <div>
-                <div className="font-medium">APIs WhatsApp</div>
-                <div className="text-sm text-gray-600">Todas conectadas</div>
+                <div className="font-medium text-foreground">APIs WhatsApp</div>
+                <div className="text-sm text-muted-foreground">Todas conectadas</div>
               </div>
             </div>
             
             <div className="flex items-center space-x-3">
               <div className="status-dot success"></div>
               <div>
-                <div className="font-medium">Sistema de Filas</div>
-                <div className="text-sm text-gray-600">Operacional</div>
+                <div className="font-medium text-foreground">Sistema de Filas</div>
+                <div className="text-sm text-muted-foreground">Operacional</div>
               </div>
             </div>
             
             <div className="flex items-center space-x-3">
               <div className="status-dot success"></div>
               <div>
-                <div className="font-medium">Google Sheets</div>
-                <div className="text-sm text-gray-600">Sincronizado</div>
+                <div className="font-medium text-foreground">Google Sheets</div>
+                <div className="text-sm text-muted-foreground">Sincronizado</div>
               </div>
             </div>
           </div>

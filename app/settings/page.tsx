@@ -173,10 +173,10 @@ export default function SettingsPage() {
     return (
       <div className="p-6">
         <div className="animate-pulse">
-          <div className="h-8 bg-gray-200 rounded w-1/4 mb-6"></div>
+          <div className="h-8 bg-muted rounded w-1/4 mb-6"></div>
           <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-            <div className="h-64 bg-gray-200 rounded"></div>
-            <div className="lg:col-span-3 h-64 bg-gray-200 rounded"></div>
+            <div className="h-64 bg-muted rounded"></div>
+            <div className="lg:col-span-3 h-64 bg-muted rounded"></div>
           </div>
         </div>
       </div>
@@ -187,8 +187,8 @@ export default function SettingsPage() {
     <div className="p-6 space-y-6 animate-fade-in">
       {/* Header */}
       <div>
-        <h1 className="text-3xl font-bold text-gray-900">Configurações</h1>
-        <p className="text-gray-600 mt-1">
+        <h1 className="text-3xl font-bold text-foreground">Configurações</h1>
+        <p className="text-muted-foreground mt-1">
           Gerencie suas preferências e configurações da conta
         </p>
       </div>
@@ -207,7 +207,7 @@ export default function SettingsPage() {
                     className={`w-full flex items-center px-4 py-3 text-sm font-medium rounded-none transition-colors ${
                       activeTab === tab.id
                         ? 'bg-blue-50 text-blue-600 border-r-2 border-blue-600'
-                        : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+                        : 'text-muted-foreground hover:text-foreground hover:bg-accent/10'
                     }`}
                   >
                     <Icon className="mr-3 h-5 w-5" />
@@ -240,9 +240,9 @@ export default function SettingsPage() {
                         type="email"
                         value={profileData.email}
                         disabled
-                        className="bg-gray-100"
+                        className="bg-muted"
                       />
-                      <p className="text-sm text-gray-500 mt-1">
+                      <p className="text-sm text-muted-foreground mt-1">
                         O email não pode ser alterado
                       </p>
                     </div>
@@ -339,7 +339,7 @@ export default function SettingsPage() {
                         ...settingsData,
                         timezone: e.target.value
                       })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
                     >
                       <option value="America/Sao_Paulo">Brasília (GMT-3)</option>
                       <option value="America/New_York">Nova York (GMT-5)</option>
@@ -373,7 +373,7 @@ export default function SettingsPage() {
                   <div className="flex items-center justify-between">
                     <div>
                       <h3 className="text-sm font-medium">Notificações Push</h3>
-                      <p className="text-sm text-gray-500">
+                      <p className="text-sm text-muted-foreground">
                         Receba notificações sobre o status das campanhas
                       </p>
                     </div>
@@ -387,14 +387,14 @@ export default function SettingsPage() {
                         })}
                         className="sr-only peer"
                       />
-                      <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                      <div className="w-11 h-6 bg-muted peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
                     </label>
                   </div>
 
                   <div className="flex items-center justify-between">
                     <div>
                       <h3 className="text-sm font-medium">Relatórios por Email</h3>
-                      <p className="text-sm text-gray-500">
+                      <p className="text-sm text-muted-foreground">
                         Receba relatórios semanais por email
                       </p>
                     </div>
@@ -408,7 +408,7 @@ export default function SettingsPage() {
                         })}
                         className="sr-only peer"
                       />
-                      <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                      <div className="w-11 h-6 bg-muted peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
                     </label>
                   </div>
                 </div>
@@ -518,10 +518,10 @@ export default function SettingsPage() {
                 </div>
 
                 <div className="space-y-4">
-                  <div className="flex items-center justify-between p-4 border border-gray-200 rounded-md">
+                  <div className="flex items-center justify-between p-4 border border-border rounded-md">
                     <div>
                       <h3 className="text-sm font-medium">Exportar Dados</h3>
-                      <p className="text-sm text-gray-500">
+                      <p className="text-sm text-muted-foreground">
                         Baixe todos os seus dados em formato JSON
                       </p>
                     </div>
@@ -554,7 +554,7 @@ export default function SettingsPage() {
               <div className="flex items-center justify-between">
                 <div>
                   <h3 className="text-sm font-medium">Sessão</h3>
-                  <p className="text-sm text-gray-500">
+                  <p className="text-sm text-muted-foreground">
                     Desconecte-se da sua conta
                   </p>
                 </div>

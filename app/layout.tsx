@@ -5,6 +5,7 @@ import { Sidebar } from '@/components/layout/sidebar'
 import { Header } from '@/components/layout/header'
 import { AuthProvider } from '@/components/providers/auth-provider'
 import { ThemeProvider } from '@/components/providers/theme-provider'
+import { ConditionalLayout } from '@/components/layout/conditional-layout'
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -28,15 +29,9 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           <AuthProvider>
-            <div className="flex h-screen bg-background">
-              <Sidebar />
-              <div className="flex-1 flex flex-col overflow-hidden lg:ml-0">
-                <Header />
-                <main className="flex-1 overflow-auto bg-background">
-                  {children}
-                </main>
-              </div>
-            </div>
+            <ConditionalLayout>
+              {children}
+            </ConditionalLayout>
           </AuthProvider>
         </ThemeProvider>
       </body>

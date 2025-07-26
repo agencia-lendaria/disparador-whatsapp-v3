@@ -242,10 +242,10 @@ export default function CampaignsPage() {
     return (
       <div className="p-6">
         <div className="animate-pulse">
-          <div className="h-8 bg-gray-200 rounded w-1/4 mb-6"></div>
+          <div className="h-8 bg-muted rounded w-1/4 mb-6"></div>
           <div className="space-y-4">
             {[...Array(3)].map((_, i) => (
-              <div key={i} className="h-24 bg-gray-200 rounded"></div>
+              <div key={i} className="h-24 bg-muted rounded"></div>
             ))}
           </div>
         </div>
@@ -258,8 +258,8 @@ export default function CampaignsPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Campanhas</h1>
-          <p className="text-gray-600 mt-1">
+          <h1 className="text-3xl font-bold text-foreground">Campanhas</h1>
+          <p className="text-muted-foreground mt-1">
             Gerencie suas campanhas de disparo de mensagens
           </p>
         </div>
@@ -274,7 +274,7 @@ export default function CampaignsPage() {
       {/* Filters */}
       <div className="flex flex-col sm:flex-row gap-4">
         <div className="relative flex-1">
-          <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+          <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder="Buscar campanhas..."
             value={searchTerm}
@@ -285,7 +285,7 @@ export default function CampaignsPage() {
         <select
           value={statusFilter}
           onChange={(e) => setStatusFilter(e.target.value)}
-          className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="px-3 py-2 border border-border bg-background text-foreground rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
         >
           <option value="all">Todos os status</option>
           <option value="draft">Rascunho</option>
@@ -304,8 +304,8 @@ export default function CampaignsPage() {
             <div className="flex items-center">
               <MessageSquare className="h-8 w-8 text-blue-500" />
               <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Total</p>
-                <p className="text-2xl font-bold">{campaigns.length}</p>
+                <p className="text-sm font-medium text-muted-foreground">Total</p>
+                <p className="text-2xl font-bold text-foreground">{campaigns.length}</p>
               </div>
             </div>
           </CardContent>
@@ -316,8 +316,8 @@ export default function CampaignsPage() {
             <div className="flex items-center">
               <Play className="h-8 w-8 text-green-500" />
               <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Ativas</p>
-                <p className="text-2xl font-bold">
+                <p className="text-sm font-medium text-muted-foreground">Ativas</p>
+                <p className="text-2xl font-bold text-foreground">
                   {campaigns.filter(c => ['running', 'scheduled'].includes(c.status)).length}
                 </p>
               </div>
@@ -330,8 +330,8 @@ export default function CampaignsPage() {
             <div className="flex items-center">
               <Calendar className="h-8 w-8 text-orange-500" />
               <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Agendadas</p>
-                <p className="text-2xl font-bold">
+                <p className="text-sm font-medium text-muted-foreground">Agendadas</p>
+                <p className="text-2xl font-bold text-foreground">
                   {campaigns.filter(c => c.status === 'scheduled').length}
                 </p>
               </div>
@@ -344,8 +344,8 @@ export default function CampaignsPage() {
             <div className="flex items-center">
               <Users className="h-8 w-8 text-purple-500" />
               <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Contatos</p>
-                <p className="text-2xl font-bold">
+                <p className="text-sm font-medium text-muted-foreground">Contatos</p>
+                <p className="text-2xl font-bold text-foreground">
                   {campaigns.reduce((sum, campaign) => sum + campaign.contacts_count, 0)}
                 </p>
               </div>
@@ -359,11 +359,11 @@ export default function CampaignsPage() {
         {filteredCampaigns.length === 0 ? (
           <Card>
             <CardContent className="p-12 text-center">
-              <MessageSquare className="h-12 w-12 mx-auto mb-4 text-gray-400" />
-              <h3 className="text-lg font-medium text-gray-900 mb-2">
+              <MessageSquare className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+              <h3 className="text-lg font-medium text-foreground mb-2">
                 Nenhuma campanha encontrada
               </h3>
-              <p className="text-gray-600 mb-6">
+              <p className="text-muted-foreground mb-6">
                 {searchTerm || statusFilter !== 'all' 
                   ? 'Nenhuma campanha corresponde aos filtros aplicados.'
                   : 'Comece criando sua primeira campanha de disparo.'
@@ -387,10 +387,10 @@ export default function CampaignsPage() {
                   <div className="flex-1">
                     <div className="flex items-center space-x-4">
                       <div>
-                        <h3 className="text-lg font-semibold text-gray-900">
+                        <h3 className="text-lg font-semibold text-foreground">
                           {campaign.name}
                         </h3>
-                        <p className="text-sm text-gray-600">
+                        <p className="text-sm text-muted-foreground">
                           {campaign.api_configuration?.name} • {formatDate(campaign.created_at)}
                         </p>
                       </div>
@@ -402,7 +402,7 @@ export default function CampaignsPage() {
                       </Badge>
                     </div>
                     
-                    <div className="mt-4 flex items-center space-x-6 text-sm text-gray-600">
+                    <div className="mt-4 flex items-center space-x-6 text-sm text-muted-foreground">
                       <div className="flex items-center">
                         <Users className="h-4 w-4 mr-1" />
                         {campaign.contacts_count} contatos
