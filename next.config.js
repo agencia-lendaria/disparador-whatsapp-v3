@@ -14,7 +14,7 @@ const nextConfig = {
   
   // Experimental features for better performance
   experimental: {
-    optimizeCss: true,
+    // optimizeCss: true, // Disabled due to 'critters' module error
     serverComponentsExternalPackages: ['@supabase/supabase-js'],
     optimizePackageImports: ['lucide-react', '@radix-ui/react-icons'],
   },

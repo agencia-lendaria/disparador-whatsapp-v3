@@ -375,49 +375,106 @@ export function getMessageProcessor(): MessageProcessor {
   return messageProcessor
 }
 
-// Check if we should start the processor
+// Check if we should start the processor - Enhanced Next.js build detection
 function isValidExecutionContext(): boolean {
-  // Don't start during build processes
-  if (process.env.BUILDING || process.env.VERCEL_ENV === 'building') {
-    return false
-  }
-  
-  // Don't start during Next.js build, type checking, or testing
-  if (process.argv.some(arg => 
-    arg.includes('build') || 
-    arg.includes('type-check') ||
-    arg.includes('next-build') ||
-    arg.includes('.next') ||
-    arg.includes('webpack')
-  )) {
-    return false
-  }
-  
-  // Don't start in test environment
+  // Never start in test environment
   if (process.env.NODE_ENV === 'test') {
     return false
   }
   
-  // Don't start if we're in a build/static generation context
-  if (process.env.NEXT_PHASE === 'phase-production-build') {
+  // Don't start during any build processes
+  if (process.env.BUILDING || 
+      process.env.VERCEL_ENV === 'building' ||
+      process.env.VERCEL_PHASE_BUILD_NAME ||
+      process.env.__NEXT_PRIVATE_STANDALONE_CONFIG) {
     return false
+  }
+  
+  // Check for Next.js specific build phases
+  if (process.env.NEXT_PHASE && (
+      process.env.NEXT_PHASE === 'phase-production-build' ||
+      process.env.NEXT_PHASE === 'phase-development-build' ||
+      process.env.NEXT_PHASE.includes('build')
+  )) {
+    return false
+  }
+  
+  // Enhanced process.argv checking for Next.js specific patterns
+  const buildRelatedArgs = process.argv.some(arg => 
+    arg.includes('build') || 
+    arg.includes('type-check') ||
+    arg.includes('next-build') ||
+    arg.includes('.next/server') ||
+    arg.includes('webpack') ||
+    arg.includes('static-generation') ||
+    arg.includes('next-server') ||
+    arg.endsWith('next') ||
+    arg.includes('prerender')
+  )
+  
+  if (buildRelatedArgs) {
+    return false
+  }
+  
+  // Check if we're in a worker thread for static generation
+  if (typeof process !== 'undefined' && process.env.NODE_ENV === 'production') {
+    // Additional safety check for production builds
+    try {
+      // If we can't access normal runtime features, we're likely in build context
+      if (typeof global === 'undefined' || 
+          (typeof window === 'undefined' && typeof document === 'undefined' && !process.env.RUNTIME)) {
+        // This might be static generation context
+        return false
+      }
+    } catch (e) {
+      // If there's any error accessing global context, don't start
+      return false
+    }
+  }
+  
+  // Additional check: if process title suggests Next.js build
+  if (process.title && (
+      process.title.includes('next') ||
+      process.title.includes('node') && process.argv[1]?.includes('next')
+  )) {
+    // Only allow if it's the dev server
+    if (!process.argv.some(arg => arg === 'dev')) {
+      return false
+    }
   }
   
   return true
 }
 
 // Auto-start processor only in valid contexts
-if (typeof window === 'undefined' && isValidExecutionContext()) {
-  const processor = getMessageProcessor()
-  const interval = process.env.NODE_ENV === 'production' ? 10000 : 30000 // 30 seconds in dev, 10 in prod
+if (typeof window === 'undefined') {
+  // Debug logging to understand execution context
+  const isValid = isValidExecutionContext()
+  const debugInfo = {
+    NODE_ENV: process.env.NODE_ENV,
+    NEXT_PHASE: process.env.NEXT_PHASE,
+    argv: process.argv.slice(0, 3), // First 3 args for debugging
+    processTitle: process.title,
+    isValidContext: isValid
+  }
   
-  console.log(`🚀 Auto-starting message processor (${process.env.NODE_ENV}) with ${interval}ms interval...`)
-  processor.start(interval)
-  
-  // Graceful shutdown
-  process.on('SIGINT', () => {
-    console.log('Shutting down message processor...')
-    processor.stop()
-    process.exit(0)
-  })
+  // Only log if we're not in a build context (to avoid polluting build output)
+  if (isValid) {
+    const processor = getMessageProcessor()
+    const interval = process.env.NODE_ENV === 'production' ? 10000 : 30000 // 30 seconds in dev, 10 in prod
+    
+    console.log(`🚀 Auto-starting message processor (${process.env.NODE_ENV}) with ${interval}ms interval...`)
+    console.log('📊 Context debug:', debugInfo)
+    processor.start(interval)
+    
+    // Graceful shutdown
+    process.on('SIGINT', () => {
+      console.log('Shutting down message processor...')
+      processor.stop()
+      process.exit(0)
+    })
+  } else {
+    // Silent for build contexts, but could log to file if needed
+    // console.log('⏸️ Message processor not started - build context detected:', debugInfo)
+  }
 }
