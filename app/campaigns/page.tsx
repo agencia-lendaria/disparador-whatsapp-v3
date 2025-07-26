@@ -169,26 +169,36 @@ export default function CampaignsPage() {
   const handleCampaignAction = async (campaignId: string, action: 'pause' | 'resume' | 'cancel' | 'duplicate' | 'delete') => {
     setActionLoading(campaignId)
     try {
+      // Get the current session token
+      const { data: { session } } = await supabase.auth.getSession()
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json'
+      }
+      
+      if (session?.access_token) {
+        headers['authorization'] = `Bearer ${session.access_token}`
+      }
+
       let response
       
       switch (action) {
         case 'pause':
-          response = await fetch(`/api/campaigns/${campaignId}/pause`, { method: 'PUT' })
+          response = await fetch(`/api/campaigns/${campaignId}/pause`, { method: 'PUT', headers })
           break
         case 'resume':
-          response = await fetch(`/api/campaigns/${campaignId}/resume`, { method: 'PUT' })
+          response = await fetch(`/api/campaigns/${campaignId}/resume`, { method: 'PUT', headers })
           break
         case 'cancel':
-          response = await fetch(`/api/campaigns/${campaignId}/cancel`, { method: 'PUT' })
+          response = await fetch(`/api/campaigns/${campaignId}/cancel`, { method: 'PUT', headers })
           break
         case 'duplicate':
-          response = await fetch(`/api/campaigns/${campaignId}/duplicate`, { method: 'POST' })
+          response = await fetch(`/api/campaigns/${campaignId}/duplicate`, { method: 'POST', headers })
           break
         case 'delete':
           if (!confirm('Tem certeza que deseja excluir esta campanha? Esta ação não pode ser desfeita.')) {
             return
           }
-          response = await fetch(`/api/campaigns/${campaignId}/delete`, { method: 'DELETE' })
+          response = await fetch(`/api/campaigns/${campaignId}/delete`, { method: 'DELETE', headers })
           break
       }
 

@@ -6,31 +6,56 @@ export async function PUT(
   { params }: { params: { id: string } }
 ) {
   try {
-    const { data: { user } } = await supabase.auth.getUser()
+    // Get authorization header
+    const authorization = request.headers.get('authorization')
     
-    if (!user) {
+    if (!authorization) {
       return NextResponse.json(
-        { error: 'Unauthorized' },
+        { error: 'Unauthorized - No token provided' },
         { status: 401 }
       )
     }
 
+    // Extract the token from "Bearer <token>"
+    const token = authorization.replace('Bearer ', '')
+    
+    // Try alternative approach first - use the supabase client with headers
+    const { createClient } = await import('@supabase/supabase-js')
+    const authSupabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        global: {
+          headers: {
+            authorization: authorization
+          }
+        }
+      }
+    )
+    
+    // Try querying campaigns directly to verify access
     const campaignId = params.id
-
-    // Verificar se a campanha pertence ao usuário
-    const { data: campaign, error: fetchError } = await supabase
+    console.log('Testing auth validation for campaign:', campaignId)
+    
+    const { data: campaign, error: fetchError } = await authSupabase
       .from('campaigns')
       .select('id, status, user_id')
       .eq('id', campaignId)
-      .eq('user_id', user.id)
       .single()
-
+    
     if (fetchError || !campaign) {
+      console.error('Auth validation failed via database query:', fetchError)
       return NextResponse.json(
-        { error: 'Campaign not found' },
-        { status: 404 }
+        { error: 'Unauthorized - Invalid token' },
+        { status: 401 }
       )
     }
+    
+    // Use the campaign's user_id for operations
+    console.log('Auth successful - campaign user_id:', campaign.user_id)
+    const user = { id: campaign.user_id }
+
+    console.log('Campaign found:', campaign)
 
     // Verificar se a campanha pode ser retomada
     if (campaign.status !== 'paused') {
@@ -41,7 +66,8 @@ export async function PUT(
     }
 
     // Retomar a campanha
-    const { data, error } = await supabase
+    console.log('Updating campaign status to running')
+    const { data, error } = await authSupabase
       .from('campaigns')
       .update({ 
         status: 'running',
@@ -54,14 +80,18 @@ export async function PUT(
 
     if (error) {
       console.error('Error resuming campaign:', error)
+      console.error('Error details:', JSON.stringify(error, null, 2))
       return NextResponse.json(
-        { error: 'Failed to resume campaign' },
+        { error: 'Failed to resume campaign', details: error.message },
         { status: 500 }
       )
     }
 
+    console.log('Campaign resumed successfully:', data)
+
     // Reativar mensagens na fila que foram canceladas
-    const { data: contacts } = await supabase
+    console.log('Updating message queue to reactivate pending messages')
+    const { data: contacts } = await authSupabase
       .from('campaign_contacts')
       .select('id')
       .eq('campaign_id', campaignId)
@@ -76,9 +106,16 @@ export async function PUT(
         scheduled_at: new Date().toISOString()
       }))
 
-      await supabase
+      const { error: queueError } = await authSupabase
         .from('message_queue')
         .insert(queueEntries)
+        
+      if (queueError) {
+        console.error('Error updating message queue:', queueError)
+        // Don't fail the entire resume operation for this
+      } else {
+        console.log('Message queue updated successfully')
+      }
     }
 
     return NextResponse.json({
@@ -88,9 +125,21 @@ export async function PUT(
 
   } catch (error) {
     console.error('Error in resume campaign API:', error)
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
+    console.error('Error stack:', error instanceof Error ? error.stack : 'No stack trace')
+    
+    // Ensure we always return JSON, even for server errors
+    return new NextResponse(
+      JSON.stringify({ 
+        error: 'Internal server error', 
+        details: error instanceof Error ? error.message : 'Unknown error',
+        timestamp: new Date().toISOString()
+      }),
+      { 
+        status: 500,
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      }
     )
   }
 }

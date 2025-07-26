@@ -117,3 +117,14 @@ supabase -> Utilizar para implementar soluções completas de backend incluindo:
 context7 -> Utilizar para acessar documentação oficial sempre atualizada de bibliotecas e frameworks.
 @magicuidesign/mcp -> Utilizar para criar e implementar componentes modernos de UI, seguindo boas práticas de design, acessibilidade e responsividade. Priorizar componentes reutilizáveis e consistência visual.
 playwright -> Use esta ferramenta para automatizar interações com navegadores web, incluindo navegação, preenchimento de formulários, cliques em elementos, captura de screenshots e extração de dados de páginas web. O Playwright suporta múltiplos navegadores (Chrome, Firefox, Safari) e pode executar operações tanto em modo headless quanto com interface gráfica. Essa ferramenta é fundamental para realizar testes, ver os erros que aparecem no console para criar planos de ação para corrigir.
+
+## Error Tracking & Solutions
+
+Para consultar erros já enfrentados e suas soluções, veja o arquivo `ERROR_SOLUTIONS.md` na raiz do projeto. Este arquivo deve ser atualizado constantemente sempre que novos erros aparecerem, documentando:
+
+- Stack traces completos
+- Passos de diagnóstico 
+- Soluções detalhadas com comandos
+- Exemplos de código quando aplicável
+
+**IMPORTANTE:** Sempre consulte este arquivo antes de tentar resolver um erro que possa já ter sido enfrentado anteriormente.

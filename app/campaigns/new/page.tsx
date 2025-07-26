@@ -270,6 +270,86 @@ export default function NewCampaignPage() {
 
       if (configError) throw configError
 
+      // Criar fila de mensagens para campanhas que não são rascunho
+      if (!isDraft && contacts.length > 0 && messages.length > 0) {
+        console.log('Creating message queue for campaign:', campaign.id)
+        
+        // Get saved contacts and messages with IDs
+        const { data: savedContacts } = await supabase
+          .from('campaign_contacts')
+          .select('id, phone_number, name')
+          .eq('campaign_id', campaign.id)
+
+        const { data: savedMessages } = await supabase
+          .from('campaign_messages')
+          .select('id, content, media_url, content_type, order_index')
+          .eq('campaign_id', campaign.id)
+          .order('order_index')
+
+        if (savedContacts && savedMessages) {
+          // Create message queue entries for each contact-message combination
+          const messageQueueEntries = []
+          const baseScheduledTime = campaignData.scheduled_at 
+            ? new Date(campaignData.scheduled_at) 
+            : new Date()
+
+          // For now, use the first message (later can implement sequence logic)
+          const primaryMessage = savedMessages[0]
+          
+          for (let i = 0; i < savedContacts.length; i++) {
+            const contact = savedContacts[i]
+            
+            // Calculate scheduled time with delays
+            const delay = i * ((sendingConfig.min_delay_seconds + sendingConfig.max_delay_seconds) / 2) * 1000
+            const scheduledAt = new Date(baseScheduledTime.getTime() + delay)
+
+            messageQueueEntries.push({
+              campaign_id: campaign.id,
+              contact_id: contact.id,
+              contact_phone: contact.phone_number,
+              contact_name: contact.name,
+              message_content: primaryMessage.content,
+              media_url: primaryMessage.media_url,
+              media_type: primaryMessage.content_type,
+              status: 'pending',
+              scheduled_at: scheduledAt.toISOString(),
+              retry_count: 0
+            })
+          }
+
+          // Insert message queue entries
+          const { error: queueError } = await supabase
+            .from('message_queue')
+            .insert(messageQueueEntries)
+
+          if (queueError) {
+            console.error('Error creating message queue:', queueError)
+            throw queueError
+          }
+
+          console.log(`Created ${messageQueueEntries.length} message queue entries`)
+
+          // Start message processor automatically
+          try {
+            await fetch('/api/message-queue/start', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' }
+            })
+            console.log('Message processor started')
+            
+            // Also trigger immediate processing
+            await fetch('/api/message-queue/process', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' }
+            })
+            console.log('Message processor triggered')
+          } catch (processorError) {
+            console.warn('Failed to start/trigger message processor:', processorError)
+            // Don't fail the campaign creation for this
+          }
+        }
+      }
+
       router.push('/campaigns')
     } catch (error) {
       console.error('Error saving campaign:', error)

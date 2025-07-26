@@ -1,9 +1,29 @@
 import { createClient } from '@supabase/supabase-js'
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
 
+if (!supabaseUrl) {
+  throw new Error('Missing NEXT_PUBLIC_SUPABASE_URL environment variable')
+}
+
+if (!supabaseAnonKey) {
+  throw new Error('Missing NEXT_PUBLIC_SUPABASE_ANON_KEY environment variable')
+}
+
+// Client for frontend (with RLS)
 export const supabase = createClient(supabaseUrl, supabaseAnonKey)
+
+// Admin client for backend/API routes (bypasses RLS)
+export const supabaseAdmin = supabaseServiceKey 
+  ? createClient(supabaseUrl, supabaseServiceKey, {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false
+      }
+    })
+  : null
 
 export type Database = {
   public: {
@@ -57,6 +77,8 @@ export type Database = {
           scheduled_at: string | null
           started_at: string | null
           completed_at: string | null
+          sent_count: number
+          failed_count: number
           created_at: string
           updated_at: string
         }
@@ -68,6 +90,8 @@ export type Database = {
           google_sheets_url?: string | null
           sheet_id_column?: string | null
           scheduled_at?: string | null
+          sent_count?: number
+          failed_count?: number
         }
         Update: {
           name?: string
@@ -78,6 +102,8 @@ export type Database = {
           scheduled_at?: string | null
           started_at?: string | null
           completed_at?: string | null
+          sent_count?: number
+          failed_count?: number
         }
       }
       campaign_messages: {
@@ -144,6 +170,7 @@ export type Database = {
           max_delay_seconds: number
           pause_after_messages: number
           pause_duration_seconds: number
+          max_retries: number
           daily_limit: number | null
           allowed_hours_start: string | null
           allowed_hours_end: string | null
@@ -155,6 +182,7 @@ export type Database = {
           max_delay_seconds?: number
           pause_after_messages?: number
           pause_duration_seconds?: number
+          max_retries?: number
           daily_limit?: number | null
           allowed_hours_start?: string | null
           allowed_hours_end?: string | null
@@ -164,6 +192,7 @@ export type Database = {
           max_delay_seconds?: number
           pause_after_messages?: number
           pause_duration_seconds?: number
+          max_retries?: number
           daily_limit?: number | null
           allowed_hours_start?: string | null
           allowed_hours_end?: string | null
@@ -174,9 +203,14 @@ export type Database = {
           id: string
           campaign_id: string
           contact_id: string
-          status: 'pending' | 'processing' | 'sent' | 'failed' | 'cancelled'
+          contact_phone: string
+          contact_name: string | null
+          message_content: string
+          media_url: string | null
+          media_type: string | null
+          status: 'pending' | 'sending' | 'sent' | 'failed' | 'cancelled'
           scheduled_at: string
-          processed_at: string | null
+          sent_at: string | null
           error_message: string | null
           retry_count: number
           created_at: string
@@ -185,16 +219,26 @@ export type Database = {
         Insert: {
           campaign_id: string
           contact_id: string
-          status?: 'pending' | 'processing' | 'sent' | 'failed' | 'cancelled'
+          contact_phone: string
+          contact_name?: string | null
+          message_content: string
+          media_url?: string | null
+          media_type?: string | null
+          status?: 'pending' | 'sending' | 'sent' | 'failed' | 'cancelled'
           scheduled_at?: string
-          processed_at?: string | null
+          sent_at?: string | null
           error_message?: string | null
           retry_count?: number
         }
         Update: {
-          status?: 'pending' | 'processing' | 'sent' | 'failed' | 'cancelled'
+          contact_phone?: string
+          contact_name?: string | null
+          message_content?: string
+          media_url?: string | null
+          media_type?: string | null
+          status?: 'pending' | 'sending' | 'sent' | 'failed' | 'cancelled'
           scheduled_at?: string
-          processed_at?: string | null
+          sent_at?: string | null
           error_message?: string | null
           retry_count?: number
         }
