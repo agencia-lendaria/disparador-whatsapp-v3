@@ -73,7 +73,12 @@ export class MessageProcessor {
 
     try {
       // Get pending messages that are ready to be sent using a simpler approach
-      const { data: rawMessages, error } = await supabaseAdmin
+      if (!supabaseAdmin) {
+        console.error('Supabase admin client not available')
+        return
+      }
+      
+      const { data: rawMessages, error } = await supabaseAdmin!
         .from('message_queue')
         .select('*')
         .eq('status', 'pending')
@@ -85,9 +90,9 @@ export class MessageProcessor {
       
       if (!error && rawMessages && rawMessages.length > 0) {
         // Enrich with campaign data manually
-        const campaignIds = [...new Set(rawMessages.map(m => m.campaign_id))]
+        const campaignIds = Array.from(new Set(rawMessages.map(m => m.campaign_id)))
         
-        const { data: campaignsData } = await supabaseAdmin
+        const { data: campaignsData } = await supabaseAdmin!
           .from('campaigns')
           .select(`
             id,
@@ -159,7 +164,7 @@ export class MessageProcessor {
     try {
       // Mark as sending
       console.log(`⏳ Marking message ${message.id} as 'sending'`)
-      await supabaseAdmin
+      await supabaseAdmin!
         .from('message_queue')
         .update({ 
           status: 'sending',
@@ -216,7 +221,7 @@ export class MessageProcessor {
       if (result.success) {
         // Mark as sent
         await Promise.all([
-          supabaseAdmin
+          supabaseAdmin!
             .from('message_queue')
             .update({ 
               status: 'sent',
@@ -226,7 +231,7 @@ export class MessageProcessor {
             .eq('id', message.id),
           
           // Update campaign contact status
-          supabaseAdmin
+          supabaseAdmin!
             .from('campaign_contacts')
             .update({ 
               status: 'sent',
@@ -257,7 +262,7 @@ export class MessageProcessor {
         const retryDelay = Math.pow(2, newRetryCount) * 60 * 1000 // 2, 4, 8 minutes
         const scheduledAt = new Date(Date.now() + retryDelay).toISOString()
         
-        await supabaseAdmin
+        await supabaseAdmin!
           .from('message_queue')
           .update({ 
             status: 'pending',
@@ -272,7 +277,7 @@ export class MessageProcessor {
       } else {
         // Mark as failed
         await Promise.all([
-          supabaseAdmin
+          supabaseAdmin!
             .from('message_queue')
             .update({ 
               status: 'failed',
@@ -282,7 +287,7 @@ export class MessageProcessor {
             .eq('id', message.id),
           
           // Update campaign contact status
-          supabaseAdmin
+          supabaseAdmin!
             .from('campaign_contacts')
             .update({ 
               status: 'failed',
@@ -316,7 +321,7 @@ export class MessageProcessor {
   private async updateCampaignProgress(campaignId: string) {
     try {
       // Get campaign stats
-      const { data: stats } = await supabaseAdmin
+      const { data: stats } = await supabaseAdmin!
         .from('campaign_contacts')
         .select('status')
         .eq('campaign_id', campaignId)
@@ -335,7 +340,7 @@ export class MessageProcessor {
       }
 
       // Update campaign
-      await supabaseAdmin
+      await supabaseAdmin!
         .from('campaigns')
         .update({
           status: campaignStatus,
@@ -370,8 +375,39 @@ export function getMessageProcessor(): MessageProcessor {
   return messageProcessor
 }
 
-// Auto-start processor in development and production
-if (typeof window === 'undefined') {
+// Check if we should start the processor
+function isValidExecutionContext(): boolean {
+  // Don't start during build processes
+  if (process.env.BUILDING || process.env.VERCEL_ENV === 'building') {
+    return false
+  }
+  
+  // Don't start during Next.js build, type checking, or testing
+  if (process.argv.some(arg => 
+    arg.includes('build') || 
+    arg.includes('type-check') ||
+    arg.includes('next-build') ||
+    arg.includes('.next') ||
+    arg.includes('webpack')
+  )) {
+    return false
+  }
+  
+  // Don't start in test environment
+  if (process.env.NODE_ENV === 'test') {
+    return false
+  }
+  
+  // Don't start if we're in a build/static generation context
+  if (process.env.NEXT_PHASE === 'phase-production-build') {
+    return false
+  }
+  
+  return true
+}
+
+// Auto-start processor only in valid contexts
+if (typeof window === 'undefined' && isValidExecutionContext()) {
   const processor = getMessageProcessor()
   const interval = process.env.NODE_ENV === 'production' ? 10000 : 30000 // 30 seconds in dev, 10 in prod
   

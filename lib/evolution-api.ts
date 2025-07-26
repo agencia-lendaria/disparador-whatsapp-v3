@@ -175,6 +175,11 @@ export async function createEvolutionAPIInstance(apiConfigId: string): Promise<E
     // Import supabase here to avoid circular dependency
     const { supabaseAdmin } = await import('@/lib/supabase')
     
+    if (!supabaseAdmin) {
+      console.error('Supabase admin client not available')
+      return null
+    }
+    
     const { data: config, error } = await supabaseAdmin
       .from('api_configurations')
       .select('*')

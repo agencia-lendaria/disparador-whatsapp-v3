@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useCallback, memo } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { 
@@ -26,11 +26,42 @@ const navigation = [
   { name: 'APIs', href: '/apis', icon: Database },
   { name: 'Relatórios', href: '/reports', icon: BarChart3 },
   { name: 'Configurações', href: '/settings', icon: Settings },
-]
+] as const
 
-export function Sidebar() {
+// Memoized navigation item component
+const NavigationItem = memo(({ item, isActive, onClose }: {
+  item: (typeof navigation)[number]
+  isActive: boolean
+  onClose: () => void
+}) => (
+  <Link
+    href={item.href}
+    onClick={onClose}
+    className={cn(
+      "flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors",
+      isActive
+        ? "bg-primary/10 text-primary border-r-2 border-primary"
+        : "text-muted-foreground hover:text-foreground hover:bg-accent"
+    )}
+  >
+    <item.icon className="mr-3 h-5 w-5" />
+    {item.name}
+  </Link>
+))
+NavigationItem.displayName = 'NavigationItem'
+
+export const Sidebar = memo(function Sidebar() {
   const [isOpen, setIsOpen] = useState(false)
   const pathname = usePathname()
+
+  // Memoized handlers to prevent unnecessary re-renders
+  const toggleSidebar = useCallback(() => {
+    setIsOpen(prev => !prev)
+  }, [])
+
+  const closeSidebar = useCallback(() => {
+    setIsOpen(false)
+  }, [])
 
   return (
     <>
@@ -39,7 +70,7 @@ export function Sidebar() {
         <Button
           variant="outline"
           size="icon"
-          onClick={() => setIsOpen(!isOpen)}
+          onClick={toggleSidebar}
           className="bg-background shadow-md"
         >
           {isOpen ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}
@@ -48,7 +79,7 @@ export function Sidebar() {
 
       {/* Sidebar */}
       <div className={cn(
-        "fixed inset-y-0 left-0 z-40 w-64 bg-background border-r border-border transform transition-transform duration-200 ease-in-out lg:translate-x-0 lg:static lg:inset-0",
+        "fixed inset-y-0 left-0 z-40 w-64 bg-background border-r border-border sidebar-enhanced transform transition-transform duration-200 ease-in-out lg:translate-x-0 lg:static lg:inset-0",
         isOpen ? "translate-x-0" : "-translate-x-full"
       )}>
         <div className="flex h-full flex-col">
@@ -64,25 +95,14 @@ export function Sidebar() {
 
           {/* Navigation */}
           <nav className="flex-1 px-4 py-6 space-y-2">
-            {navigation.map((item) => {
-              const isActive = pathname === item.href
-              return (
-                <Link
-                  key={item.name}
-                  href={item.href}
-                  onClick={() => setIsOpen(false)}
-                  className={cn(
-                    "flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors",
-                    isActive
-                      ? "bg-primary/10 text-primary border-r-2 border-primary"
-                      : "text-muted-foreground hover:text-foreground hover:bg-accent"
-                  )}
-                >
-                  <item.icon className="mr-3 h-5 w-5" />
-                  {item.name}
-                </Link>
-              )
-            })}
+            {navigation.map((item) => (
+              <NavigationItem
+                key={item.name}
+                item={item}
+                isActive={pathname === item.href}
+                onClose={closeSidebar}
+              />
+            ))}
           </nav>
 
           {/* Footer */}
@@ -98,9 +118,9 @@ export function Sidebar() {
       {isOpen && (
         <div
           className="fixed inset-0 z-30 bg-black/50 lg:hidden"
-          onClick={() => setIsOpen(false)}
+          onClick={closeSidebar}
         />
       )}
     </>
   )
-}
+})
